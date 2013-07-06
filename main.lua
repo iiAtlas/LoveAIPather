@@ -22,6 +22,7 @@ function love.load()
 	genMap()
 end
 
+-- Clears and fills map
 function clearMap()
 	for y = 0, love.graphics.getHeight(), tileSize do
 		local xTiles = {}
@@ -33,6 +34,7 @@ function clearMap()
 	end
 end
 
+-- Generates a random map
 function genMap()
 	for y = 0, love.graphics.getHeight(), tileSize do
 		local xTiles = {}
@@ -44,23 +46,6 @@ function genMap()
 		end
 		map[y] = xTiles
 		walkedMap[y] = walkTiles
-	end
-end
-
-function genRoom(x, y, width, height)
-	y = y * tileSize
-	x = x * tileSize
-	width = width * tileSize
-	height = height * tileSize
-	for yy = y, y + height, tileSize do
-		local xTiles = {}
-		for xx = 0, love.graphics.getWidth(), tileSize do
-			if xx < x or xx > x + width then xTiles[xx] = map[yy][xx]
-			else xTiles[xx] = 1 end
-
-			if (xx >= x + tileSize and xx <= (x - tileSize) + width) and (yy >= y + tileSize and yy <= (y - tileSize) + height) then xTiles[xx] = 0 end
-		end
-		map[yy] = xTiles
 	end
 end
 
@@ -76,6 +61,7 @@ function getTileScore(x, y)
 	return score
 end
 
+-- Chooses the best possible tile from a table of options, returns the index
 function chooseBestTile(options)
 	local lowest = 10, index
 	for i = 1, #options do
