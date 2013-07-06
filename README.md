@@ -14,6 +14,8 @@ R - Regenerate map/restart
 
 S - Change AI path speed
 
+T - Change tile size
+
 Build
 ------
 
