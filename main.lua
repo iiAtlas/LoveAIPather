@@ -6,12 +6,15 @@ local px, py
 local speeds, speedIndex
 local shouldDrawMap, shouldDrawWalked
 local pather1, pather2
+local shouldShowMap, dPresses
 
 function love.load()
 	tileSizes = { 10, 15, 20, 5 }
 	tileSize = tileSizes[tileSizeIndex]
 
 	done = false
+	shouldShowMap = false
+	dPresses = 1
 
 	speeds = { 0, 0.05, 0.25, 0.5, 1 }
 	speedIndex = 1
@@ -87,7 +90,7 @@ end
 
 function love.draw()
 	if done then
-		drawPaths()
+		drawPaths(false)
 		pather1:draw()
 		pather2:draw()
 	else
@@ -105,7 +108,7 @@ function love.draw()
 				end
 			end
 		elseif shouldDrawWalked then
-			drawPaths()
+			drawPaths(shouldShowMap)
 		end
 	end
 
@@ -115,19 +118,20 @@ function love.draw()
 
 	-- Draw Stats
 	love.graphics.setColor(0, 0, 0)
-	love.graphics.rectangle("fill", love.graphics.getWidth() - 100, 0, 100, 40)
+	love.graphics.rectangle("fill", love.graphics.getWidth() - 100, 0, 100, 38)
 	love.graphics.setColor(255, 255, 255)
-	love.graphics.rectangle("line", love.graphics.getWidth() - 100, 0, 100, 40)
+	love.graphics.rectangle("line", love.graphics.getWidth() - 100, 0, 100, 38)
 	love.graphics.setColor(255, 0, 0)
 	love.graphics.print("Speed: "..2 - speeds[speedIndex], love.graphics.getWidth() - 95, 5)
+	love.graphics.print("Steps: "..pather1.steps, love.graphics.getWidth() - 95, 20)
 end
 
-function drawPaths()
+function drawPaths(withMap)
 	local combinedPaths = {}
 	for y = 0, love.graphics.getHeight(), tileSize do
 		local xTiles = {}
 		for x = 0, love.graphics.getWidth(), tileSize do
-			xTiles[x] = pather1.walkedMap[y][x] + pather2.walkedMap[y][x]
+			xTiles[x] = pather1.walkedMap[y][x] + pather2.walkedMap[y][x] + (withMap and map[y][x] * 10 or 0)
 		end
 		combinedPaths[y] = xTiles
 	end
@@ -155,8 +159,20 @@ function love.keypressed(key)
 		else speedIndex = 1 end
 	end
 	if key == "d" then
-		shouldDrawMap = not shouldDrawMap
-		shouldDrawWalked = not shouldDrawWalked
+		if dPresses < 3 then dPresses = dPresses + 1 else dPresses = 1 end
+		if dPresses == 1 then
+			shouldDrawMap = true
+			shouldShowMap = false
+			shouldDrawWalked = false
+		elseif dPresses == 2 then
+			shouldDrawMap = false
+			shouldShowMap = false
+			shouldDrawWalked = true
+		elseif dPresses == 3 then
+			shouldDrawMap = false
+			shouldShowMap = true
+			shouldDrawWalked = true
+		end
 	end
 	if key == "t" then
 		if tileSizeIndex < #tileSizes then tileSizeIndex = tileSizeIndex + 1
