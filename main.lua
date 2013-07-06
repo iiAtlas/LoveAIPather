@@ -1,23 +1,26 @@
 local map = {}, tileSize
 local tileSizes = {}
 local tileSizeIndex = 1
-local walkedMap = {}, steps
 local done
 local px, py
 local speeds, speedIndex
 local shouldDrawMap, shouldDrawWalked
+local pather1, pather2
 
 function love.load()
 	tileSizes = { 10, 15, 20, 5 }
 	tileSize = tileSizes[tileSizeIndex]
-	steps = 0
-	done = false
 
-	px = 5
-	py = 5
+	done = false
 
 	speeds = { 0, 0.05, 0.25, 0.5, 1 }
 	speedIndex = 1
+
+	pather1 = AIPather.create(5, 5)
+	pather1.color = { 255, 0, 0 }
+
+	pather2 = AIPather.create(5, 25)
+	pather2.color = { 0, 255, 0 }
 
 	shouldDrawMap = true
 	shouldDrawWalked = false
@@ -33,7 +36,6 @@ function clearMap()
 			xTiles[x] = 0
 		end
 		map[y] = xTiles
-		walkTiles[y] = xTiles
 	end
 end
 
@@ -41,14 +43,11 @@ end
 function genMap()
 	for y = 0, love.graphics.getHeight(), tileSize do
 		local xTiles = {}
-		local walkTiles = {}
 		for x = 0, love.graphics.getWidth(), tileSize do
 			local choices = {0, 0, 1}
 			xTiles[x] = choices[math.random(1, #choices)]
-			walkTiles[x] = 0
 		end
 		map[y] = xTiles
-		walkedMap[y] = walkTiles
 	end
 end
 
@@ -57,10 +56,10 @@ function isTileEmpty(x, y)
 	else return false end
 end
 
-function getTileScore(x, y)
+function getTileScore(pather, x, y)
 	local score = 0
 	if map[y * tileSize][x * tileSize] == 1 then return 10 end
-	score = score + walkedMap[y * tileSize][x * tileSize]
+	score = score + pather.walkedMap[y * tileSize][x * tileSize]
 	return score
 end
 
@@ -79,47 +78,8 @@ end
 
 function love.update(dt)
 	if(not done) then
-		if px * tileSize >= (love.graphics.getWidth() - tileSize) or py * tileSize >= (love.graphics.getHeight() - tileSize) or px * tileSize < tileSize or py * tileSize <= tileSize then
-			done = true
-			return
-		end
-
-		local npx = px
-		local npy = py
-
-		local options = {} -- R, B, L, T
-		options[1] = getTileScore(px + 1, py)
-		options[2] = getTileScore(px, py + 1)
-		options[3] = getTileScore(px - 1, py)
-		options[4] = getTileScore(px, py - 1)
-		for i = 1, #options do print(options[i]) end
-		
-		local allFull = true
-		for i = 1, #options do
-			if options[i] ~= 10 then
-				allFull = false
-				break
-			end
-		end
-		if allFull then
-			done = true
-			return
-		end
-
-		local best = chooseBestTile(options)
-		if best == 1 then npx = px + 1
-		elseif best == 2 then npy = py + 1
-		elseif best == 3 then npx = px - 1
-		elseif best == 4 then npy = py - 1
-		end
-
-		if isTileEmpty(npx, npy) then
-			px = npx
-			py = npy
-
-			walkedMap[py * tileSize][px * tileSize] = walkedMap[py * tileSize][px * tileSize] + 1
-			steps = steps + 1
-		end
+		pather1:update()
+		pather2:update()
 
 		love.timer.sleep(speeds[speedIndex])
 	end
@@ -127,21 +87,9 @@ end
 
 function love.draw()
 	if done then
-		for y = 0, love.graphics.getHeight(), tileSize do
-			for x = 0, love.graphics.getWidth(), tileSize do
-				love.graphics.setColor(255, 255, 255)
-				love.graphics.rectangle("line", x, y, tileSize, tileSize)
-				
-				local val = walkedMap[y][x]
-				if val == 0 then love.graphics.setColor(0, 0, 0)
-				elseif val == 1 then love.graphics.setColor(0, 255, 0)
-				elseif val == 2 then love.graphics.setColor(0, 0, 255)
-				elseif val == 3 then love.graphics.setColor(255, 0, 0)
-				else love.graphics.setColor(255, 255, 255)
-				end
-				love.graphics.rectangle("fill", x, y, tileSize, tileSize)
-			end
-		end
+		drawPaths()
+		pather1:draw()
+		pather2:draw()
 	else
 		-- Draw Map
 		if shouldDrawMap then
@@ -157,27 +105,13 @@ function love.draw()
 				end
 			end
 		elseif shouldDrawWalked then
-			for y = 0, love.graphics.getHeight(), tileSize do
-				for x = 0, love.graphics.getWidth(), tileSize do
-					love.graphics.setColor(255, 255, 255)
-					love.graphics.rectangle("line", x, y, tileSize, tileSize)
-					
-					local val = walkedMap[y][x]
-					if val == 0 then love.graphics.setColor(0, 0, 0)
-					elseif val == 1 then love.graphics.setColor(0, 255, 0)
-					elseif val == 2 then love.graphics.setColor(0, 0, 255)
-					elseif val == 3 then love.graphics.setColor(255, 0, 0)
-					else love.graphics.setColor(255, 255, 255)
-					end
-					love.graphics.rectangle("fill", x, y, tileSize, tileSize)
-				end
-			end
+			drawPaths()
 		end
 	end
 
 	-- Draw Player
-	love.graphics.setColor(255, 0, 0)
-	love.graphics.rectangle("line", px * tileSize, py * tileSize, tileSize, tileSize)
+	pather1:draw()
+	pather2:draw()
 
 	-- Draw Stats
 	love.graphics.setColor(0, 0, 0)
@@ -186,7 +120,32 @@ function love.draw()
 	love.graphics.rectangle("line", love.graphics.getWidth() - 100, 0, 100, 40)
 	love.graphics.setColor(255, 0, 0)
 	love.graphics.print("Speed: "..2 - speeds[speedIndex], love.graphics.getWidth() - 95, 5)
-	love.graphics.print("Steps: "..steps, love.graphics.getWidth() - 95, 20)
+end
+
+function drawPaths()
+	local combinedPaths = {}
+	for y = 0, love.graphics.getHeight(), tileSize do
+		local xTiles = {}
+		for x = 0, love.graphics.getWidth(), tileSize do
+			xTiles[x] = pather1.walkedMap[y][x] + pather2.walkedMap[y][x]
+		end
+		combinedPaths[y] = xTiles
+	end
+
+	for y = 0, love.graphics.getHeight(), tileSize do
+		for x = 0, love.graphics.getWidth(), tileSize do
+			
+			local val = combinedPaths[y][x]
+			if val == 0 then love.graphics.setColor(0, 0, 0)
+			elseif val == 1 then love.graphics.setColor(0, 255, 0)
+			elseif val == 2 then love.graphics.setColor(0, 0, 255)
+			elseif val == 3 then love.graphics.setColor(255, 0, 0)
+			else love.graphics.setColor(255, 255, 255)
+			end
+
+			love.graphics.rectangle("fill", x, y, tileSize, tileSize)
+		end
+	end
 end
 
 function love.keypressed(key)
@@ -204,4 +163,76 @@ function love.keypressed(key)
 		else tileSizeIndex = 1 end
 		love.load()
 	end
+end
+
+-- AI Pather
+AIPather = {}
+AIPather.__index = AIPather
+
+function AIPather.create(px, py)
+	local walked = {}
+	for iy = 0, love.graphics.getHeight(), tileSize do
+		local xTiles = {}
+		for ix = 0, love.graphics.getWidth(), tileSize do
+			xTiles[ix] = 0
+		end
+		walked[iy] = xTiles
+	end
+
+	return setmetatable({
+		x = px or 10,
+		y = py or 10,
+		color = { 255, 255, 255 },
+		walkedMap = walked,
+		steps = 0
+	}, AIPather)
+end
+
+function AIPather:update()
+	if self.x * tileSize >= (love.graphics.getWidth() - tileSize) or self.y * tileSize >= (love.graphics.getHeight() - tileSize) or self.x * tileSize < tileSize or self.y * tileSize <= tileSize then
+		done = true
+		return
+	end
+
+	local npx = self.x
+	local npy = self.y
+
+	local options = {} -- R, B, L, T
+	options[1] = getTileScore(self, self.x + 1, self.y)
+	options[2] = getTileScore(self, self.x, self.y + 1)
+	options[3] = getTileScore(self, self.x - 1, self.y)
+	options[4] = getTileScore(self, self.x, self.y - 1)
+	for i = 1, #options do print(options[i]) end
+	
+	local allFull = true
+	for i = 1, #options do
+		if options[i] ~= 10 then
+			allFull = false
+			break
+		end
+	end
+	if allFull then
+		done = true
+		return
+	end
+
+	local best = chooseBestTile(options)
+	if best == 1 then npx = self.x + 1
+	elseif best == 2 then npy = self.y + 1
+	elseif best == 3 then npx = self.x - 1
+	elseif best == 4 then npy = self.y - 1
+	end
+
+	if isTileEmpty(npx, npy) then
+		self.x = npx
+		self.y = npy
+
+		self.walkedMap[self.y * tileSize][self.x * tileSize] = self.walkedMap[self.y * tileSize][self.x * tileSize] + 1
+		self.steps = self.steps + 1
+	end
+end
+
+function AIPather:draw()
+	love.graphics.setColor(self.color[1], self.color[2], self.color[3])
+	love.graphics.rectangle("line", self.x * tileSize, self.y * tileSize, tileSize, tileSize)
 end
