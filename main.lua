@@ -1,17 +1,20 @@
 local map = {}, tileSize
-local walkedMap = {}
+local walkedMap = {}, steps
+local done
 local px, py
 local speeds, speedIndex
 local shouldDrawMap, shouldDrawWalked
 
 function love.load()
 	tileSize = 10
+	steps = 0
+	done = false
 
 	px = 5
 	py = 5
 
-	speeds = { 0.05, 0.25, 0.5, 1 }
-	speedIndex = #speeds
+	speeds = { 0, 0.05, 0.25, 0.5, 1 }
+	speedIndex = 1
 
 	shouldDrawMap = true
 	shouldDrawWalked = false
@@ -70,7 +73,6 @@ function getTileScore(x, y)
 	local score = 0
 	if map[y * tileSize][x * tileSize] == 1 then return 10 end
 	score = score + walkedMap[y * tileSize][x * tileSize]
-	print("ts "..score)
 	return score
 end
 
@@ -82,76 +84,60 @@ function chooseBestTile(options)
 			index = i
 		end
 	end
+	for i = 1, #options do print("t "..options[i]) end
 	return index
 end
 
 function love.update(dt)
-	local npx = px
-	local npy = py
+	if(not done) then
+		if px * tileSize >= (love.graphics.getWidth() - tileSize) or py * tileSize >= (love.graphics.getHeight() - tileSize) or px * tileSize < tileSize or py * tileSize <= tileSize then
+			done = true
+			return
+		end
 
-	local options = {} -- R, BR, B, BL, L, TL, T, TR
-	options[1] = getTileScore(px + 1, py)
-	options[2] = getTileScore(px + 1, py + 1)
-	options[3] = getTileScore(px, py + 1)
-	options[4] = getTileScore(px - 1, py + 1)
-	options[5] = getTileScore(px - 1, py)
-	options[6] = getTileScore(px - 1, py - 1)
-	options[7] = getTileScore(px, py - 1)
-	options[8] = getTileScore(px + 1, py - 1)
-	for i = 1, #options do print(options[i]) end
+		local npx = px
+		local npy = py
 
-	local best = chooseBestTile(options)
-	if best == 1 then
-		npx = px + 1
-		npy = py
-	elseif best == 2 then
-		npx = px + 1
-		npy = py + 1
-	elseif best == 3 then
-		npx = px
-		npy = py + 1
-	elseif best == 4 then
-		npx = px - 1
-		npy = py + 1
-	elseif best == 5 then
-		npx = px - 1
-		npy = py
-	elseif best == 6 then
-		npx = px - 1
-		npy = py - 1
-	elseif best == 7 then
-		npx = px
-		npy = py - 1
-	elseif best == 8 then
-		npx = px + 1
-		npy = py - 1
+		local options = {} -- R, B, L, T
+		options[1] = getTileScore(px + 1, py)
+		options[2] = getTileScore(px, py + 1)
+		options[3] = getTileScore(px - 1, py)
+		options[4] = getTileScore(px, py - 1)
+		for i = 1, #options do print(options[i]) end
+		
+		local allFull = true
+		for i = 1, #options do
+			if options[i] ~= 10 then
+				allFull = false
+				break
+			end
+		end
+		if allFull then
+			done = true
+			return
+		end
+
+		local best = chooseBestTile(options)
+		if best == 1 then npx = px + 1
+		elseif best == 2 then npy = py + 1
+		elseif best == 3 then npx = px - 1
+		elseif best == 4 then npy = py - 1
+		end
+
+		if isTileEmpty(npx, npy) then
+			px = npx
+			py = npy
+
+			walkedMap[py * tileSize][px * tileSize] = walkedMap[py * tileSize][px * tileSize] + 1
+			steps = steps + 1
+		end
+
+		love.timer.sleep(speeds[speedIndex])
 	end
-
-	if isTileEmpty(npx, npy) then
-		px = npx
-		py = npy
-
-		walkedMap[py * tileSize][px * tileSize] = walkedMap[py * tileSize][px * tileSize] + 1
-	end
-
-	love.timer.sleep(speeds[speedIndex])
 end
 
 function love.draw()
-	-- Draw Map
-	if shouldDrawMap then
-		for y = 0, love.graphics.getHeight(), tileSize do
-			for x = 0, love.graphics.getWidth(), tileSize do
-				local val = map[y][x]
-				if val == 0 then love.graphics.setColor(0, 0, 0)
-				elseif val == 1 then love.graphics.setColor(255, 255, 255)
-				else love.graphics.setColor(0, 0, 0)
-				end
-
-				love.graphics.rectangle("fill", x, y, tileSize, tileSize)
-			end
-		end
-	elseif shouldDrawWalked then
+	if done then
 		for y = 0, love.graphics.getHeight(), tileSize do
 			for x = 0, love.graphics.getWidth(), tileSize do
 				love.graphics.setColor(255, 255, 255)
@@ -167,23 +153,51 @@ function love.draw()
 				love.graphics.rectangle("fill", x, y, tileSize, tileSize)
 			end
 		end
+	else
+		-- Draw Map
+		if shouldDrawMap then
+			for y = 0, love.graphics.getHeight(), tileSize do
+				for x = 0, love.graphics.getWidth(), tileSize do
+					local val = map[y][x]
+					if val == 0 then love.graphics.setColor(0, 0, 0)
+					elseif val == 1 then love.graphics.setColor(255, 255, 255)
+					else love.graphics.setColor(0, 0, 0)
+					end
+
+					love.graphics.rectangle("fill", x, y, tileSize, tileSize)
+				end
+			end
+		elseif shouldDrawWalked then
+			for y = 0, love.graphics.getHeight(), tileSize do
+				for x = 0, love.graphics.getWidth(), tileSize do
+					love.graphics.setColor(255, 255, 255)
+					love.graphics.rectangle("line", x, y, tileSize, tileSize)
+					
+					local val = walkedMap[y][x]
+					if val == 0 then love.graphics.setColor(0, 0, 0)
+					elseif val == 1 then love.graphics.setColor(0, 255, 0)
+					elseif val == 2 then love.graphics.setColor(0, 0, 255)
+					elseif val == 3 then love.graphics.setColor(255, 0, 0)
+					else love.graphics.setColor(255, 255, 255)
+					end
+					love.graphics.rectangle("fill", x, y, tileSize, tileSize)
+				end
+			end
+		end
 	end
 
 	-- Draw Player
 	love.graphics.setColor(255, 0, 0)
 	love.graphics.rectangle("line", px * tileSize, py * tileSize, tileSize, tileSize)
 
-	-- Draw Front
-	love.graphics.setColor(0, 255, 0)
-	love.graphics.rectangle("line", (px + 1) * tileSize, py * tileSize, tileSize, tileSize)
-
 	-- Draw Stats
 	love.graphics.setColor(0, 0, 0)
-	love.graphics.rectangle("fill", love.graphics.getWidth() - 100, 0, 100, 50)
+	love.graphics.rectangle("fill", love.graphics.getWidth() - 100, 0, 100, 40)
 	love.graphics.setColor(255, 255, 255)
-	love.graphics.rectangle("line", love.graphics.getWidth() - 100, 0, 100, 50)
+	love.graphics.rectangle("line", love.graphics.getWidth() - 100, 0, 100, 40)
 	love.graphics.setColor(255, 0, 0)
-	love.graphics.print("Speed: "..2 - speeds[speedIndex], love.graphics.getWidth() - 95, 15)
+	love.graphics.print("Speed: "..2 - speeds[speedIndex], love.graphics.getWidth() - 95, 5)
+	love.graphics.print("Steps: "..steps, love.graphics.getWidth() - 95, 20)
 end
 
 function love.keypressed(key)
