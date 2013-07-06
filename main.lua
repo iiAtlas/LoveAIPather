@@ -31,17 +31,6 @@ function love.load()
 	genMap()
 end
 
--- Clears and fills map
-function clearMap()
-	for y = 0, love.graphics.getHeight(), tileSize do
-		local xTiles = {}
-		for x = 0, love.graphics.getWidth(), tileSize do
-			xTiles[x] = 0
-		end
-		map[y] = xTiles
-	end
-end
-
 -- Generates a random map
 function genMap()
 	for y = 0, love.graphics.getHeight(), tileSize do
@@ -59,6 +48,7 @@ function isTileEmpty(x, y)
 	else return false end
 end
 
+-- Returns the computed "score" of a tile from 0 (good) to 10 (bad)
 function getTileScore(pather, x, y)
 	local score = 0
 	if map[y * tileSize][x * tileSize] == 1 then return 10 end
@@ -126,6 +116,7 @@ function love.draw()
 	love.graphics.print("Steps: "..pather1.steps, love.graphics.getWidth() - 95, 20)
 end
 
+-- Combine player paths into one table and draw them (optionally with the map overlayed)
 function drawPaths(withMap)
 	local combinedPaths = {}
 	for y = 0, love.graphics.getHeight(), tileSize do
