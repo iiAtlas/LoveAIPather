@@ -1,4 +1,6 @@
 local map = {}, tileSize
+local tileSizes = {}
+local tileSizeIndex = 1
 local walkedMap = {}, steps
 local done
 local px, py
@@ -6,7 +8,8 @@ local speeds, speedIndex
 local shouldDrawMap, shouldDrawWalked
 
 function love.load()
-	tileSize = 10
+	tileSizes = { 10, 15, 20, 5 }
+	tileSize = tileSizes[tileSizeIndex]
 	steps = 0
 	done = false
 
@@ -195,5 +198,10 @@ function love.keypressed(key)
 	if key == "d" then
 		shouldDrawMap = not shouldDrawMap
 		shouldDrawWalked = not shouldDrawWalked
+	end
+	if key == "t" then
+		if tileSizeIndex < #tileSizes then tileSizeIndex = tileSizeIndex + 1
+		else tileSizeIndex = 1 end
+		love.load()
 	end
 end
