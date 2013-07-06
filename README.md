@@ -7,7 +7,9 @@ Controls
 --------
 
 D - Change draw mode (show map or path)
+
 R - Regenerate map/restart
+
 S - Change AI path speed
 
 Build
