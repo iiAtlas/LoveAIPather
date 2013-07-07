@@ -135,7 +135,9 @@ function drawPaths(withMap)
 			elseif val == 1 then love.graphics.setColor(0, 255, 0)
 			elseif val == 2 then love.graphics.setColor(0, 0, 255)
 			elseif val == 3 then love.graphics.setColor(255, 0, 0)
-			else love.graphics.setColor(255, 255, 255)
+			elseif val == 4 then love.graphics.setColor(255, 0, 255)
+			elseif val == 5 then love.graphics.setColor(0, 255, 255)
+			else love.graphics.setColor(255, 255, 0)
 			end
 
 			love.graphics.rectangle("fill", x, y, tileSize, tileSize)
