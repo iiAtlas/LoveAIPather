@@ -214,7 +214,6 @@ function AIPather:update()
 	options[2] = getTileScore(self, self.x, self.y + 1)
 	options[3] = getTileScore(self, self.x - 1, self.y)
 	options[4] = getTileScore(self, self.x, self.y - 1)
-	for i = 1, #options do print(options[i]) end
 	
 	local allFull = true
 	for i = 1, #options do
