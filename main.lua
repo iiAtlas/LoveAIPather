@@ -36,8 +36,11 @@ function genMap()
 	for y = 0, love.graphics.getHeight(), tileSize do
 		local xTiles = {}
 		for x = 0, love.graphics.getWidth(), tileSize do
-			local choices = {0, 0, 1}
-			xTiles[x] = choices[math.random(1, #choices)]
+			if y == 0 or x == 0 or y == love.graphics.getHeight() - tileSize then xTiles[x] = 1
+			else
+				local choices = {0, 0, 1}
+				xTiles[x] = choices[math.random(1, #choices)]
+			end
 		end
 		map[y] = xTiles
 	end
@@ -65,12 +68,11 @@ function chooseBestTile(options)
 			index = i
 		end
 	end
-	for i = 1, #options do print("t "..options[i]) end
 	return index
 end
 
 function love.update(dt)
-	if(not done) then
+	if not done then
 		pather1:update()
 		pather2:update()
 
@@ -137,6 +139,7 @@ function drawPaths(withMap)
 			elseif val == 3 then love.graphics.setColor(255, 0, 0)
 			elseif val == 4 then love.graphics.setColor(255, 0, 255)
 			elseif val == 5 then love.graphics.setColor(0, 255, 255)
+			elseif val == 10 then love.graphics.setColor(255, 255, 255)
 			else love.graphics.setColor(255, 255, 0)
 			end
 
@@ -198,7 +201,7 @@ function AIPather.create(px, py)
 end
 
 function AIPather:update()
-	if self.x * tileSize >= (love.graphics.getWidth() - tileSize) or self.y * tileSize >= (love.graphics.getHeight() - tileSize) or self.x * tileSize < tileSize or self.y * tileSize <= tileSize then
+	if self.x * tileSize >= (love.graphics.getWidth() - tileSize) or self.y * tileSize >= (love.graphics.getHeight() - tileSize) or self.x * tileSize < tileSize or self.y * tileSize < tileSize then
 		done = true
 		return
 	end
