@@ -178,7 +178,13 @@ function love.keypressed(key)
 end
 
 -- AI Pather
-AIPather = {}
+AIPather = {
+	x = 10,
+	y = 10,
+	color = { 255, 255, 255 },
+	walkedMap = { },
+	steps = 0
+}
 AIPather.__index = AIPather
 
 function AIPather.create(px, py)
@@ -192,11 +198,9 @@ function AIPather.create(px, py)
 	end
 
 	return setmetatable({
-		x = px or 10,
-		y = py or 10,
-		color = { 255, 255, 255 },
-		walkedMap = walked,
-		steps = 0
+		x = px or x,
+		y = py or y,
+		walkedMap = walked
 	}, AIPather)
 end
 
